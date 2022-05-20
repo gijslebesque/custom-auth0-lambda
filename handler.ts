@@ -21,8 +21,12 @@ module.exports.hello = async (
   };
 };
 
+interface IEvent extends APIGatewayEvent {
+  routeArn: string;
+}
+
 module.exports.auth = async (
-  event: APIGatewayEvent
+  event: IEvent
   // context: Context,
   // callback: APIGatewayProxyCallback
 ) => {
@@ -30,7 +34,6 @@ module.exports.auth = async (
     const user = await authoriser(event);
     return {
       principalId: user.sub,
-      //@ts-ignore
       policyDocument: getPolicyDocument("Allow", event.routeArn),
       context: { user },
     };

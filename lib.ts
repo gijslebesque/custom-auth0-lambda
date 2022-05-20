@@ -6,9 +6,8 @@ import {
   PolicyDocument,
 } from "aws-lambda";
 
-const AUTH0_CLIENT_AUDIENCE = process.env.AUTH0_CLIENT_AUDIENCE;
-const AUTH0_CLIENT_ISSUER = process.env.AUTH0_CLIENT_ISSUER;
-const AUTH0_JWKS_URI = process.env.AUTH0_JWKS_URI;
+const { AUTH0_CLIENT_AUDIENCE, AUTH0_CLIENT_ISSUER, AUTH0_JWKS_URI } =
+  process.env;
 
 const getToken = (headers: APIGatewayProxyEventHeaders) => {
   const authorizationBearer = headers?.authorization;
@@ -53,7 +52,11 @@ export const getPolicyDocument = (
   };
 };
 
-//@TODO find out why types are not working
+interface IKey {
+  publicKey?: string;
+  rsaPublicKey?: string;
+}
+
 export const authoriser = async (event: APIGatewayEvent) => {
   const token = getToken(event.headers);
 
@@ -62,10 +65,13 @@ export const authoriser = async (event: APIGatewayEvent) => {
     throw new Error("invalid token");
   }
 
-  const key = await client.getSigningKey(decoded.header.kid);
+  const key: IKey = await client.getSigningKey(decoded.header.kid);
 
-  //@ts-ignore
   const signingKey = key?.publicKey || key?.rsaPublicKey;
+
+  if (!signingKey) {
+    throw new Error("invalid token");
+  }
 
   return jwt.verify(token, signingKey, jwtOptions);
 };
