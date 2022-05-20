@@ -1,14 +1,16 @@
-// extract and return the Bearer Token from the Lambda event parameters
-
-const util = require("util");
-const jwksClient = require("jwks-rsa");
-const jwt = require("jsonwebtoken");
+import jwksClient from "jwks-rsa";
+import jwt from "jsonwebtoken";
+import {
+  APIGatewayEvent,
+  APIGatewayProxyEventHeaders,
+  PolicyDocument,
+} from "aws-lambda";
 
 const AUTH0_CLIENT_AUDIENCE = process.env.AUTH0_CLIENT_AUDIENCE;
 const AUTH0_CLIENT_ISSUER = process.env.AUTH0_CLIENT_ISSUER;
 const AUTH0_JWKS_URI = process.env.AUTH0_JWKS_URI;
 
-const getToken = (headers) => {
+const getToken = (headers: APIGatewayProxyEventHeaders) => {
   const authorizationBearer = headers?.authorization;
   if (!authorizationBearer) {
     throw new Error('Expected "headers.authorization" parameter to have value');
@@ -32,11 +34,14 @@ const client = jwksClient({
   cache: true,
   rateLimit: true,
   jwksRequestsPerMinute: 10, // Default value
-  jwksUri: AUTH0_JWKS_URI,
+  jwksUri: AUTH0_JWKS_URI ?? "",
 });
 
-const getPolicyDocument = (effect, resource) => {
-  const policyDocument = {
+const getPolicyDocument = (
+  effect: "Allow",
+  resource: string
+): PolicyDocument => {
+  return {
     Version: "2012-10-17", // default version
     Statement: [
       {
@@ -46,11 +51,11 @@ const getPolicyDocument = (effect, resource) => {
       },
     ],
   };
-
-  return policyDocument;
 };
 
-module.exports.auth = async (event) => {
+//@TODO find out why types are not working
+
+export const authoriser = async (event: APIGatewayEvent) => {
   const token = getToken(event.headers);
 
   const decoded = jwt.decode(token, { complete: true });
@@ -58,15 +63,17 @@ module.exports.auth = async (event) => {
     throw new Error("invalid token");
   }
 
-  const getSigningKey = util.promisify(client.getSigningKey);
-  return getSigningKey(decoded.header.kid)
-    .then((key) => {
-      const signingKey = key.publicKey || key.rsaPublicKey;
-      return jwt.verify(token, signingKey, jwtOptions);
-    })
-    .then((decoded) => ({
-      principalId: decoded.sub,
-      policyDocument: getPolicyDocument("Allow", event.routeArn),
-      context: { scope: decoded.scope },
-    }));
+  const key = await client.getSigningKey(decoded.header.kid);
+
+  //@ts-ignore
+  const signingKey = key.publicKey || key?.rsaPublicKey;
+
+  const user = await jwt.verify(token, signingKey, jwtOptions);
+
+  return {
+    principalId: user.sub,
+    //@ts-ignore
+    policyDocument: getPolicyDocument("Allow", event.routeArn),
+    context: { user },
+  };
 };

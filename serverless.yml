@@ -3,6 +3,10 @@ app: serverless-auth0
 service: serverless-auth0
 frameworkVersion: "3"
 
+plugins:
+  - serverless-webpack
+  # - serverless-offline # check out how serverless offline works
+
 provider:
   name: aws
   runtime: nodejs14.x
