@@ -1,0 +1,29 @@
+org: gijslebesque
+app: serverless-auth0
+service: serverless-auth0
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  environment:
+    AUTH0_CLIENT_AUDIENCE: ${file(./secrets.json):AUTH0_CLIENT_AUDIENCE}
+    AUTH0_CLIENT_ISSUER: ${file(./secrets.json):AUTH0_CLIENT_ISSUER}
+    AUTH0_JWKS_URI: ${file(./secrets.json):AUTH0_JWKS_URI}
+  httpApi:
+    authorizers:
+      customAuthorizer:
+        type: request
+        functionName: authorizerFunc
+
+functions:
+  hello:
+    handler: handler.hello
+    events:
+      - httpApi:
+          path: /hello
+          method: get
+          authorizer:
+            name: customAuthorizer
+  authorizerFunc:
+    handler: handler.auth
