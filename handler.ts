@@ -1,7 +1,7 @@
 "use strict";
-import { Context, APIGatewayProxyCallback, APIGatewayEvent } from "aws-lambda";
 
-import { authoriser } from "./lib";
+import { Context, APIGatewayProxyCallback, APIGatewayEvent } from "aws-lambda";
+import { authoriser, getPolicyDocument } from "./lib";
 
 module.exports.hello = async (
   event: APIGatewayEvent,
@@ -22,14 +22,18 @@ module.exports.hello = async (
 };
 
 module.exports.auth = async (
-  event: APIGatewayEvent,
-  context: Context,
-  callback: APIGatewayProxyCallback
+  event: APIGatewayEvent
+  // context: Context,
+  // callback: APIGatewayProxyCallback
 ) => {
   try {
-    const data = await authoriser(event);
-
-    return data;
+    const user = await authoriser(event);
+    return {
+      principalId: user.sub,
+      //@ts-ignore
+      policyDocument: getPolicyDocument("Allow", event.routeArn),
+      context: { user },
+    };
   } catch (err) {
     throw new Error("Err");
   }

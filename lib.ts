@@ -37,7 +37,7 @@ const client = jwksClient({
   jwksUri: AUTH0_JWKS_URI ?? "",
 });
 
-const getPolicyDocument = (
+export const getPolicyDocument = (
   effect: "Allow",
   resource: string
 ): PolicyDocument => {
@@ -54,7 +54,6 @@ const getPolicyDocument = (
 };
 
 //@TODO find out why types are not working
-
 export const authoriser = async (event: APIGatewayEvent) => {
   const token = getToken(event.headers);
 
@@ -66,14 +65,7 @@ export const authoriser = async (event: APIGatewayEvent) => {
   const key = await client.getSigningKey(decoded.header.kid);
 
   //@ts-ignore
-  const signingKey = key.publicKey || key?.rsaPublicKey;
+  const signingKey = key?.publicKey || key?.rsaPublicKey;
 
-  const user = await jwt.verify(token, signingKey, jwtOptions);
-
-  return {
-    principalId: user.sub,
-    //@ts-ignore
-    policyDocument: getPolicyDocument("Allow", event.routeArn),
-    context: { user },
-  };
+  return jwt.verify(token, signingKey, jwtOptions);
 };
