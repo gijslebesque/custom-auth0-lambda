@@ -3,7 +3,7 @@
 import { Context, APIGatewayProxyCallback, APIGatewayEvent } from "aws-lambda";
 import { authoriser, getPolicyDocument } from "./lib";
 
-module.exports.hello = async (
+export const hello = async (
   event: APIGatewayEvent,
   context: APIGatewayEvent
 ) => {
@@ -25,7 +25,7 @@ interface IEvent extends APIGatewayEvent {
   routeArn: string;
 }
 
-module.exports.auth = async (
+export const auth = async (
   event: IEvent
   // context: Context,
   // callback: APIGatewayProxyCallback

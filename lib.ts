@@ -58,7 +58,7 @@ interface IKey {
 }
 
 export const authoriser = async (event: APIGatewayEvent) => {
-  const token = getToken(event.headers);
+  const token = getToken(event.headers); //jwt
 
   const decoded = jwt.decode(token, { complete: true });
   if (!decoded || !decoded.header || !decoded.header.kid) {
